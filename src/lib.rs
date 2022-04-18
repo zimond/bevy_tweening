@@ -204,6 +204,7 @@
 //! [`Text`]: https://docs.rs/bevy/0.12.0/bevy/text/struct.Text.html
 //! [`Transform`]: https://docs.rs/bevy/0.12.0/bevy/transform/components/struct.Transform.html
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use bevy::prelude::*;
@@ -340,7 +341,7 @@ impl std::ops::Not for AnimatorState {
 /// while the "shape" of the animation is controlled independently.
 ///
 /// Default: `Linear`.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum EaseMethod {
     /// Follow [`EaseFunction`].
     EaseFunction(EaseFunction),
@@ -350,7 +351,7 @@ pub enum EaseMethod {
     /// stepping over the discrete limit, which must be value between 0 and 1.
     Discrete(f32),
     /// Use a custom function to interpolate the value.
-    CustomFunction(fn(f32) -> f32),
+    CustomFunction(Arc<dyn Send + Sync + Fn(f32) -> f32>),
 }
 
 impl EaseMethod {
@@ -718,24 +719,24 @@ mod tests {
         assert!(matches!(ease, EaseMethod::Linear));
 
         let ease = EaseMethod::EaseFunction(EaseFunction::QuadraticIn);
-        assert_eq!(0., ease.sample(0.));
-        assert_eq!(0.25, ease.sample(0.5));
-        assert_eq!(1., ease.sample(1.));
+        assert_eq!(0., ease.clone().sample(0.));
+        assert_eq!(0.25, ease.clone().sample(0.5));
+        assert_eq!(1., ease.clone().sample(1.));
 
         let ease = EaseMethod::Linear;
-        assert_eq!(0., ease.sample(0.));
-        assert_eq!(0.5, ease.sample(0.5));
-        assert_eq!(1., ease.sample(1.));
+        assert_eq!(0., ease.clone().sample(0.));
+        assert_eq!(0.5, ease.clone().sample(0.5));
+        assert_eq!(1., ease.clone().sample(1.));
 
         let ease = EaseMethod::Discrete(0.3);
-        assert_eq!(0., ease.sample(0.));
-        assert_eq!(1., ease.sample(0.5));
-        assert_eq!(1., ease.sample(1.));
+        assert_eq!(0., ease.clone().sample(0.));
+        assert_eq!(1., ease.clone().sample(0.5));
+        assert_eq!(1., ease.clone().sample(1.));
 
-        let ease = EaseMethod::CustomFunction(|f| 1. - f);
-        assert_eq!(0., ease.sample(1.));
-        assert_eq!(0.5, ease.sample(0.5));
-        assert_eq!(1., ease.sample(0.));
+        let ease = EaseMethod::CustomFunction(Arc::new(|f| 1. - f));
+        assert_eq!(0., ease.clone().sample(1.));
+        assert_eq!(0.5, ease.clone().sample(0.5));
+        assert_eq!(1., ease.clone().sample(0.));
     }
 
     #[test]

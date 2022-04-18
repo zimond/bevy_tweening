@@ -783,7 +783,7 @@ impl<T> Tweenable<T> for Tween<T> {
         if self.direction.is_backward() {
             factor = 1. - factor;
         }
-        let factor = self.ease_function.sample(factor);
+        let factor = self.ease_function.clone().sample(factor);
         self.lens.lerp(target, factor);
 
         // If completed at least once this frame, notify the user
